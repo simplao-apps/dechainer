@@ -214,10 +214,15 @@ object AppRepository {
         return dpm.getApplicationRestrictions(adminName, packageName)
     }
 
-    fun setApplicationRestrictions(packageName: String, restrictions: Bundle) {
-        val current = dpm.getApplicationRestrictions(adminName, packageName)
-        current.putAll(restrictions)
-        dpm.setApplicationRestrictions(adminName, packageName, current)
+    fun setApplicationRestrictions(packageName: String, restrictions: Bundle, merge: Boolean = false) {
+        val finalBundle = if (merge) {
+            val current = dpm.getApplicationRestrictions(adminName, packageName)
+            current.putAll(restrictions)
+            current
+        } else {
+            restrictions
+        }
+        dpm.setApplicationRestrictions(adminName, packageName, finalBundle)
     }
 
     fun getAvailableRestrictions(packageName: String): List<RestrictionEntry> {

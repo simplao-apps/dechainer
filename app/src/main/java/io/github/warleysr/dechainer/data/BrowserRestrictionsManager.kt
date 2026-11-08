@@ -144,7 +144,7 @@ class BrowserRestrictionsManager(private val context: Context) {
         }
 
         getPossibleBrowsers().forEach { info ->
-            AppRepository.setApplicationRestrictions(info.activityInfo.packageName, urlRestrictions)
+            AppRepository.setApplicationRestrictions(info.activityInfo.packageName, urlRestrictions, merge = true)
         }
     }
 }

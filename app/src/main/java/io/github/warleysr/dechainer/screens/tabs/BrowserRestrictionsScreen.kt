@@ -32,17 +32,19 @@ import io.github.warleysr.dechainer.models.BlockedList
 import io.github.warleysr.dechainer.viewmodels.AppsViewModel
 import io.github.warleysr.dechainer.viewmodels.BrowserRestrictionsViewModel
 import io.github.warleysr.dechainer.viewmodels.DeviceOwnerViewModel
+import io.github.warleysr.dechainer.viewmodels.NavigationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BrowserRestrictionsScreen(
     viewModel: BrowserRestrictionsViewModel = viewModel(),
     appsViewModel: AppsViewModel = viewModel(),
-    deviceOwnerViewModel: DeviceOwnerViewModel = viewModel()
+    deviceOwnerViewModel: DeviceOwnerViewModel = viewModel(),
+    navViewModel: NavigationViewModel = viewModel()
 ) {
     var showEditDialog by remember { mutableStateOf<BlockedList?>(null) }
     var isCreatingNew by remember { mutableStateOf(false) }
-    var showRestrictionsDialog by remember { mutableStateOf<AppItem?>(null) }
+    var showNoRestrictionsDialog by remember { mutableStateOf<String?>(null) }
     val recoveryGate = rememberRecoveryGate()
     val context = LocalContext.current
 
@@ -65,8 +67,21 @@ fun BrowserRestrictionsScreen(
                             val manager = BrowserRestrictionsManager(context)
                             val notSupported = !manager.supportsRestrictions(browser.packageName)
                             ListItem(
-                                modifier = Modifier.clickable(enabled = !notSupported) {
-                                    showRestrictionsDialog = browser
+                                modifier = Modifier.clickable {
+                                    if (notSupported) {
+                                        showNoRestrictionsDialog = browser.name
+                                    } else {
+                                        navViewModel.navigateToAppRestrictions(
+                                            AppItem(
+                                                name = browser.name,
+                                                packageName = browser.packageName,
+                                                icon = browser.icon,
+                                                isSystem = false,
+                                                isHidden = false,
+                                                isUninstallBlocked = false
+                                            )
+                                        )
+                                    }
                                 },
                                 headlineContent = { Text(browser.name) },
                                 supportingContent = {
@@ -148,24 +163,17 @@ fun BrowserRestrictionsScreen(
         }
     }
 
-    showRestrictionsDialog?.let { browser ->
-        AppRestrictionsDialog(
-            app = AppItem(
-                name = browser.name,
-                packageName = browser.packageName,
-                icon = browser.icon,
-                isSystem = false,
-                isHidden = false,
-                isUninstallBlocked = false
-            ),
-            viewModel = deviceOwnerViewModel,
-            onDismiss = { showRestrictionsDialog = null },
-            onSave = { restrictions ->
-                val current = deviceOwnerViewModel.getApplicationRestrictions(browser.packageName)
-                recoveryGate.change(isLooserRestrictions(current, restrictions)) {
-                    deviceOwnerViewModel.setApplicationRestrictions(browser.packageName, restrictions)
+
+
+    showNoRestrictionsDialog?.let { browserName ->
+        AlertDialog(
+            onDismissRequest = { showNoRestrictionsDialog = null },
+            title = { Text(browserName) },
+            text = { Text(stringResource(R.string.no_restrictions_available, browserName)) },
+            confirmButton = {
+                TextButton(onClick = { showNoRestrictionsDialog = null }) {
+                    Text(stringResource(R.string.confirm))
                 }
-                showRestrictionsDialog = null
             }
         )
     }

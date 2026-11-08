@@ -90,7 +90,7 @@ fun AppsScreen(
     var selectedApp by remember { mutableStateOf<AppItem?>(null) }
     var showTimeLimitDialog by remember { mutableStateOf<AppItem?>(null) }
     var showTimeWindowsDialog by remember { mutableStateOf<AppItem?>(null) }
-    var showRestrictionsDialog by remember { mutableStateOf<AppItem?>(null) }
+    var showNoRestrictionsDialog by remember { mutableStateOf<AppItem?>(null) }
     var showGroupPickerDialog by remember { mutableStateOf<AppItem?>(null) }
     var showGroupsManagementDialog by remember { mutableStateOf(false) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
@@ -242,7 +242,13 @@ fun AppsScreen(
             },
             currentGroupName = viewModel.groupFor(app.packageName)?.name,
             onManageRestrictions = {
-                showRestrictionsDialog = app
+                val available = deviceOwnerViewModel.getAvailableRestrictions(app.packageName)
+                    .filter { !it.key.equals("URLBlocklist", ignoreCase = true) }
+                if (available.isEmpty()) {
+                    showNoRestrictionsDialog = app
+                } else {
+                    navViewModel.navigateToAppRestrictions(app)
+                }
             }
         )
     }
@@ -277,17 +283,15 @@ fun AppsScreen(
 
 
 
-    showRestrictionsDialog?.let { app ->
-        AppRestrictionsDialog(
-            app = app,
-            viewModel = deviceOwnerViewModel,
-            onDismiss = { showRestrictionsDialog = null },
-            onSave = { restrictions ->
-                val current = deviceOwnerViewModel.getApplicationRestrictions(app.packageName)
-                recoveryGate.change(isLooserRestrictions(current, restrictions)) {
-                    deviceOwnerViewModel.setApplicationRestrictions(app.packageName, restrictions)
+    showNoRestrictionsDialog?.let { app ->
+        AlertDialog(
+            onDismissRequest = { showNoRestrictionsDialog = null },
+            title = { Text(app.name) },
+            text = { Text(stringResource(R.string.no_restrictions_available, app.name)) },
+            confirmButton = {
+                TextButton(onClick = { showNoRestrictionsDialog = null }) {
+                    Text(stringResource(R.string.confirm))
                 }
-                showRestrictionsDialog = null
             }
         )
     }

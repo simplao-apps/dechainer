@@ -79,8 +79,8 @@ class DeviceOwnerViewModel : ViewModel() {
     fun getApplicationRestrictions(packageName: String): Bundle =
         AppRepository.getApplicationRestrictions(packageName)
 
-    fun setApplicationRestrictions(packageName: String, restrictions: Bundle) =
-        AppRepository.setApplicationRestrictions(packageName, restrictions)
+    fun setApplicationRestrictions(packageName: String, restrictions: Bundle, merge: Boolean = false) =
+        AppRepository.setApplicationRestrictions(packageName, restrictions, merge)
 
     fun getAvailableRestrictions(packageName: String): List<RestrictionEntry> =
         AppRepository.getAvailableRestrictions(packageName)

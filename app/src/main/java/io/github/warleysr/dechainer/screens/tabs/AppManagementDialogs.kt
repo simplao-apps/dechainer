@@ -1,6 +1,7 @@
 package io.github.warleysr.dechainer.screens.tabs
 
 import androidx.compose.runtime.*
+import androidx.compose.material3.*
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.warleysr.dechainer.R
@@ -13,17 +14,19 @@ import io.github.warleysr.dechainer.screens.common.isLooserWindows
 import io.github.warleysr.dechainer.screens.common.rememberRecoveryGate
 import io.github.warleysr.dechainer.viewmodels.AppsViewModel
 import io.github.warleysr.dechainer.viewmodels.DeviceOwnerViewModel
+import io.github.warleysr.dechainer.viewmodels.NavigationViewModel
 
 @Composable
 fun AppManagementDialogs(
     selectedApp: AppItem?,
     onDismissSelectedApp: () -> Unit,
     viewModel: AppsViewModel = viewModel(),
-    deviceOwnerViewModel: DeviceOwnerViewModel = viewModel()
+    deviceOwnerViewModel: DeviceOwnerViewModel = viewModel(),
+    navViewModel: NavigationViewModel = viewModel()
 ) {
     var showTimeLimitDialog by remember { mutableStateOf<AppItem?>(null) }
     var showTimeWindowsDialog by remember { mutableStateOf<AppItem?>(null) }
-    var showRestrictionsDialog by remember { mutableStateOf<AppItem?>(null) }
+    var showNoRestrictionsDialog by remember { mutableStateOf<AppItem?>(null) }
     var showGroupPickerDialog by remember { mutableStateOf<AppItem?>(null) }
     var showGroupsManagementDialog by remember { mutableStateOf(false) }
     var showCreateGroupDialog by remember { mutableStateOf(false) }
@@ -57,7 +60,14 @@ fun AppManagementDialogs(
             },
             currentGroupName = viewModel.groupFor(app.packageName)?.name,
             onManageRestrictions = {
-                showRestrictionsDialog = app
+                val available = deviceOwnerViewModel.getAvailableRestrictions(app.packageName)
+                    .filter { !it.key.equals("URLBlocklist", ignoreCase = true) }
+                if (available.isEmpty()) {
+                    showNoRestrictionsDialog = app
+                } else {
+                    navViewModel.navigateToAppRestrictions(app)
+                    onDismissSelectedApp()
+                }
             }
         )
     }
@@ -90,17 +100,17 @@ fun AppManagementDialogs(
         )
     }
 
-    showRestrictionsDialog?.let { app ->
-        AppRestrictionsDialog(
-            app = app,
-            viewModel = deviceOwnerViewModel,
-            onDismiss = { showRestrictionsDialog = null },
-            onSave = { restrictions ->
-                val current = deviceOwnerViewModel.getApplicationRestrictions(app.packageName)
-                recoveryGate.change(isLooserRestrictions(current, restrictions)) {
-                    deviceOwnerViewModel.setApplicationRestrictions(app.packageName, restrictions)
+
+
+    showNoRestrictionsDialog?.let { app ->
+        AlertDialog(
+            onDismissRequest = { showNoRestrictionsDialog = null },
+            title = { Text(app.name) },
+            text = { Text(stringResource(R.string.no_restrictions_available, app.name)) },
+            confirmButton = {
+                TextButton(onClick = { showNoRestrictionsDialog = null }) {
+                    Text(stringResource(R.string.confirm))
                 }
-                showRestrictionsDialog = null
             }
         )
     }

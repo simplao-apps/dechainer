@@ -2,10 +2,12 @@ package io.github.warleysr.dechainer.viewmodels
 
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
+import io.github.warleysr.dechainer.models.AppItem
 
 /** Screen stack behind [io.github.warleysr.dechainer.activities.MainActivity]'s single-Activity routing. */
 class NavigationViewModel : ViewModel() {
     private val stack = mutableStateListOf("restrictions")
+    var selectedAppForRestrictions: AppItem? = null
 
     fun selectedTab() = stack.lastOrNull() ?: "restrictions"
 
@@ -14,6 +16,11 @@ class NavigationViewModel : ViewModel() {
             stack.clear()
         }
         stack.add(screen)
+    }
+
+    fun navigateToAppRestrictions(app: AppItem) {
+        selectedAppForRestrictions = app
+        navigateTo("app_restrictions")
     }
 
     fun goBack(): Boolean {

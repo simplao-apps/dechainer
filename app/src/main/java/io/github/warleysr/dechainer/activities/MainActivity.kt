@@ -105,7 +105,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     topBar = {
                         TopAppBar(
-                            title = { Text(stringResource(R.string.app_name)) },
+                            title = {
+                                Text(
+                                    if (currentScreen == "app_restrictions") {
+                                        navViewModel.selectedAppForRestrictions?.let {
+                                            stringResource(R.string.manage_restrictions, it.name)
+                                        } ?: stringResource(R.string.manage_app_restrictions)
+                                    } else {
+                                        stringResource(R.string.app_name)
+                                    }
+                                )
+                            },
                             navigationIcon = {
                                 if (!isRoot) {
                                     IconButton(onClick = { navViewModel.goBack() }) {
@@ -167,7 +177,7 @@ class MainActivity : ComponentActivity() {
 
                         val selectedBaseTab = when (currentScreen) {
                             "restrictions" -> "restrictions"
-                            "apps" -> "apps"
+                            "apps", "app_restrictions" -> "apps"
                             "config", "setup_device_owner", "activity_blocker", "browser_restrictions", "blocked_words", "visual_blocking", "impulse_lock", "focus_mode", "usage_warning", "color_filters", "suspension_logs" -> "config"
                             else -> "restrictions"
                         }
@@ -220,6 +230,17 @@ class MainActivity : ComponentActivity() {
                                     "usage_warning" -> UsageWarningScreen()
                                     "color_filters" -> ColorFilterScreen()
                                     "suspension_logs" -> SuspensionLogsScreen()
+                                    "app_restrictions" -> {
+                                        navViewModel.selectedAppForRestrictions?.let { app ->
+                                            AppRestrictionsScreen(
+                                                app = app,
+                                                viewModel = viewModel,
+                                                onBack = { navViewModel.goBack() }
+                                            )
+                                        } ?: run {
+                                            LaunchedEffect(Unit) { navViewModel.goBack() }
+                                        }
+                                    }
                                 }
                             }
                     }
