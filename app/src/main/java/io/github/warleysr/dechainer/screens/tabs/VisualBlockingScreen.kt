@@ -4,27 +4,31 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ImageSearch
-import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.warleysr.dechainer.DechainerAccessibilityService
 import io.github.warleysr.dechainer.R
+import io.github.warleysr.dechainer.data.VisualBlockingSettings
 import io.github.warleysr.dechainer.screens.common.AppPickerDialog
 import io.github.warleysr.dechainer.screens.common.RecoveryGateDialog
+import io.github.warleysr.dechainer.screens.common.isLooserSet
 import io.github.warleysr.dechainer.screens.common.rememberRecoveryGate
-import io.github.warleysr.dechainer.data.VisualBlockingSettings
 import io.github.warleysr.dechainer.viewmodels.VisualBlockingViewModel
 
 @Composable
@@ -32,7 +36,6 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
     var showAppSelectionDialog by remember { mutableStateOf(false) }
     val recoveryGate = rememberRecoveryGate()
 
-    val sessionActive = recoveryGate.isSessionActive
     val accessibilityActive = DechainerAccessibilityService.isRunning
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -43,17 +46,6 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
                 modifier = Modifier.padding(16.dp)
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-        }
-
-        if (!sessionActive) {
-            item {
-                ListItem(
-                    headlineContent = { Text(stringResource(R.string.visual_blocking_locked)) },
-                    leadingContent = { Icon(Icons.Outlined.Lock, null) },
-                    modifier = Modifier.clickable { recoveryGate.run {} }
-                )
-                HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            }
         }
 
         item {
@@ -71,8 +63,12 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
                 trailingContent = {
                     Switch(
                         checked = viewModel.enabled,
-                        enabled = sessionActive && accessibilityActive,
-                        onCheckedChange = { viewModel.updateEnabled(it) }
+                        enabled = viewModel.enabled || accessibilityActive,
+                        onCheckedChange = { checked ->
+                            recoveryGate.change(loosening = !checked) {
+                                viewModel.updateEnabled(checked)
+                            }
+                        }
                     )
                 }
             )
@@ -91,7 +87,6 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
                 },
                 trailingContent = {
                     Button(
-                        enabled = sessionActive,
                         onClick = { showAppSelectionDialog = true }
                     ) {
                         Text(stringResource(R.string.select_apps))
@@ -116,17 +111,23 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
         }
 
         items(VisualBlockingSettings.SELECTABLE_CATEGORIES) { category ->
+            val isSelected = viewModel.selectedCategories.contains(category)
+            val toggle = {
+                val loosening = isSelected
+                recoveryGate.change(loosening) {
+                    viewModel.toggleCategory(category)
+                }
+            }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(enabled = sessionActive) { viewModel.toggleCategory(category) }
+                    .clickable { toggle() }
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Checkbox(
-                    checked = viewModel.selectedCategories.contains(category),
-                    enabled = sessionActive,
-                    onCheckedChange = { viewModel.toggleCategory(category) }
+                    checked = isSelected,
+                    onCheckedChange = { toggle() }
                 )
                 Text(categoryLabel(category), modifier = Modifier.padding(start = 8.dp))
             }
@@ -146,6 +147,9 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
                 style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
+
+            var draftThreshold by remember(viewModel.threshold) { mutableFloatStateOf(viewModel.threshold) }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -153,14 +157,24 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Slider(
-                    value = viewModel.threshold,
-                    enabled = sessionActive,
-                    onValueChange = { viewModel.updateThreshold(it) },
+                    value = draftThreshold,
+                    onValueChange = { draftThreshold = it },
+                    onValueChangeFinished = {
+                        if (draftThreshold != viewModel.threshold) {
+                            val loosening = draftThreshold > viewModel.threshold
+                            recoveryGate.change(
+                                loosening = loosening,
+                                onCancel = { draftThreshold = viewModel.threshold }
+                            ) {
+                                viewModel.updateThreshold(draftThreshold)
+                            }
+                        }
+                    },
                     valueRange = 0f..1f,
                     modifier = Modifier.weight(1f)
                 )
                 Text(
-                    "${(viewModel.threshold * 100).toInt()}%",
+                    "${(draftThreshold * 100).toInt()}%",
                     modifier = Modifier.padding(start = 8.dp),
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -170,6 +184,12 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
         item { HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) }
 
         item {
+            val toggleSuspend = {
+                val target = !viewModel.suspendEnabled
+                recoveryGate.change(loosening = !target) {
+                    viewModel.updateSuspendEnabled(target)
+                }
+            }
             ListItem(
                 headlineContent = { Text(stringResource(R.string.visual_blocking_suspend)) },
                 supportingContent = { Text(stringResource(R.string.visual_blocking_suspend_desc)) },
@@ -177,13 +197,10 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
                 trailingContent = {
                     Checkbox(
                         checked = viewModel.suspendEnabled,
-                        enabled = sessionActive,
-                        onCheckedChange = { viewModel.updateSuspendEnabled(it) }
+                        onCheckedChange = { toggleSuspend() }
                     )
                 },
-                modifier = Modifier.clickable(enabled = sessionActive) {
-                    viewModel.updateSuspendEnabled(!viewModel.suspendEnabled)
-                }
+                modifier = Modifier.clickable { toggleSuspend() }
             )
 
             if (viewModel.suspendEnabled) {
@@ -191,22 +208,34 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
                     label = stringResource(R.string.visual_blocking_suspend_count),
                     supportingText = stringResource(R.string.visual_blocking_suspend_count_desc),
                     value = viewModel.suspendBlockCount,
-                    enabled = sessionActive,
-                    onValueChange = { viewModel.updateSuspendBlockCount(it) }
+                    onValueCommit = { newValue, onCancel ->
+                        val loosening = newValue > viewModel.suspendBlockCount
+                        recoveryGate.change(loosening, onCancel) {
+                            viewModel.updateSuspendBlockCount(newValue)
+                        }
+                    }
                 )
                 NumberSettingField(
                     label = stringResource(R.string.visual_blocking_suspend_window),
                     supportingText = stringResource(R.string.visual_blocking_suspend_window_desc),
                     value = viewModel.suspendWindowMinutes,
-                    enabled = sessionActive,
-                    onValueChange = { viewModel.updateSuspendWindowMinutes(it) }
+                    onValueCommit = { newValue, onCancel ->
+                        val loosening = newValue < viewModel.suspendWindowMinutes
+                        recoveryGate.change(loosening, onCancel) {
+                            viewModel.updateSuspendWindowMinutes(newValue)
+                        }
+                    }
                 )
                 NumberSettingField(
                     label = stringResource(R.string.visual_blocking_suspend_duration),
                     supportingText = stringResource(R.string.visual_blocking_suspend_duration_desc),
                     value = viewModel.suspendDurationMinutes,
-                    enabled = sessionActive,
-                    onValueChange = { viewModel.updateSuspendDurationMinutes(it) }
+                    onValueCommit = { newValue, onCancel ->
+                        val loosening = newValue < viewModel.suspendDurationMinutes
+                        recoveryGate.change(loosening, onCancel) {
+                            viewModel.updateSuspendDurationMinutes(newValue)
+                        }
+                    }
                 )
                 Text(
                     stringResource(
@@ -225,12 +254,24 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
     }
 
     if (showAppSelectionDialog) {
+        var draftApps by remember(showAppSelectionDialog) { mutableStateOf(viewModel.targetPackages) }
         AppPickerDialog(
             apps = viewModel.apps,
             isLoading = viewModel.isLoadingApps,
-            isSelected = { viewModel.targetPackages.contains(it) },
-            onToggle = { viewModel.toggleAppSelection(it) },
-            onDismiss = { showAppSelectionDialog = false }
+            isSelected = { it in draftApps },
+            onToggle = { pkg ->
+                draftApps = if (pkg in draftApps) draftApps - pkg else draftApps + pkg
+            },
+            onDismiss = { showAppSelectionDialog = false },
+            onConfirm = {
+                if (draftApps != viewModel.targetPackages) {
+                    val loosening = isLooserSet(viewModel.targetPackages, draftApps)
+                    recoveryGate.change(loosening) {
+                        viewModel.updateTargetPackages(draftApps)
+                    }
+                }
+                showAppSelectionDialog = false
+            }
         )
     }
 
@@ -238,19 +279,29 @@ fun VisualBlockingScreen(viewModel: VisualBlockingViewModel = viewModel()) {
 }
 
 /**
- * Label + numeric text field row used by the "suspend app" settings. The field is allowed to go
- * empty while the user retypes a number — [onValueChange] then reports 0, which the view model
- * treats as "not a usable value yet" and doesn't persist.
+ * Label + numeric text field row used by the "suspend app" settings. Commits changes on focus
+ * loss or keyboard 'Done'.
  */
 @Composable
 private fun NumberSettingField(
     label: String,
     supportingText: String,
     value: Int,
-    enabled: Boolean,
-    onValueChange: (Int) -> Unit
+    onValueCommit: (newValue: Int, onCancel: () -> Unit) -> Unit
 ) {
-    var textFieldValue by remember { mutableStateOf(value.toString()) }
+    var textFieldValue by remember(value) { mutableStateOf(value.toString()) }
+    val focusManager = LocalFocusManager.current
+
+    val commit = {
+        val parsed = textFieldValue.toIntOrNull() ?: 0
+        if (parsed >= 1 && parsed != value) {
+            onValueCommit(parsed) {
+                textFieldValue = value.toString()
+            }
+        } else {
+            textFieldValue = value.toString()
+        }
+    }
 
     Row(
         modifier = Modifier
@@ -264,18 +315,30 @@ private fun NumberSettingField(
         }
         OutlinedTextField(
             value = textFieldValue,
-            enabled = enabled,
             onValueChange = { newValue ->
                 if (newValue.all { it.isDigit() } && newValue.length <= 4) {
                     textFieldValue = newValue
-                    onValueChange(newValue.toIntOrNull() ?: 0)
                 }
             },
             modifier = Modifier
                 .width(96.dp)
-                .padding(start = 8.dp),
+                .padding(start = 8.dp)
+                .onFocusChanged { focusState ->
+                    if (!focusState.isFocused && textFieldValue != value.toString()) {
+                        commit()
+                    }
+                },
             textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    commit()
+                    focusManager.clearFocus()
+                }
+            ),
             singleLine = true
         )
     }
@@ -289,4 +352,3 @@ private fun categoryLabel(category: String): String = when (category) {
     "sexy" -> stringResource(R.string.nsfw_category_sexy)
     else -> category
 }
-

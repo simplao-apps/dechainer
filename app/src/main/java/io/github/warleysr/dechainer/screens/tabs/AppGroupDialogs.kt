@@ -48,7 +48,7 @@ import io.github.warleysr.dechainer.R
 import io.github.warleysr.dechainer.models.AppGroup
 import io.github.warleysr.dechainer.models.AppItem
 import io.github.warleysr.dechainer.models.TimeLimit
-import io.github.warleysr.dechainer.models.TimeWindow
+import io.github.warleysr.dechainer.models.TimeWindows
 import io.github.warleysr.dechainer.screens.common.AppPickerDialog
 
 @Composable
@@ -88,7 +88,7 @@ fun GroupsManagementDialog(
                                             Text(
                                                 stringResource(
                                                     R.string.time_windows_summary,
-                                                    group.timeWindows.joinToString(", ") { it.formatted() }
+                                                    timeWindowsSummary(group.timeWindows, compact = false)
                                                 ),
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.tertiary
@@ -175,7 +175,7 @@ fun EditGroupDialog(
     group: AppGroup,
     allApps: List<AppItem>,
     onDismiss: () -> Unit,
-    onSave: (name: String, limit: TimeLimit, windows: List<TimeWindow>, packageNames: Set<String>) -> Unit,
+    onSave: (name: String, limit: TimeLimit, windows: TimeWindows, packageNames: Set<String>) -> Unit,
     onDelete: () -> Unit
 ) {
     var name by remember { mutableStateOf(group.name) }
@@ -215,7 +215,7 @@ fun EditGroupDialog(
                     Icon(Icons.Default.Schedule, null)
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        if (windows.isNotEmpty()) windows.joinToString(", ") { it.formatted() }
+                        if (windows.isNotEmpty()) timeWindowsSummary(windows)
                         else stringResource(R.string.group_time_windows)
                     )
                 }

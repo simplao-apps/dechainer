@@ -32,6 +32,7 @@ import io.github.warleysr.dechainer.models.AppGroup
 import io.github.warleysr.dechainer.models.AppItem
 import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
+import io.github.warleysr.dechainer.models.TimeWindows
 import io.github.warleysr.dechainer.viewmodels.AppsViewModel
 import io.github.warleysr.dechainer.viewmodels.DeviceOwnerViewModel
 import io.github.warleysr.dechainer.viewmodels.NavigationViewModel
@@ -274,6 +275,8 @@ fun AppsScreen(
         )
     }
 
+
+
     showRestrictionsDialog?.let { app ->
         AppRestrictionsDialog(
             app = app,
@@ -429,13 +432,13 @@ fun AppRow(app: AppItem, viewModel: AppsViewModel, onClick: () -> Unit) {
                     )
                 }
 
-                val effectiveWindows = if (group != null) TimeWindow.intersect(group.timeWindows, app.timeWindows)
+                val effectiveWindows = if (group != null) TimeWindows.intersect(group.timeWindows, app.timeWindows)
                                        else app.timeWindows
                 if (effectiveWindows.isNotEmpty()) {
                     Text(
                         stringResource(
                             R.string.time_windows_summary,
-                            effectiveWindows.joinToString(", ") { it.formatted() }
+                            timeWindowsSummary(effectiveWindows, compact = true)
                         ),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.tertiary
@@ -640,140 +643,6 @@ fun TimeLimitDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirm(limitState.toTimeLimit(), reopeningSeconds) }) {
-                Text(stringResource(R.string.confirm))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        }
-    )
-}
-
-@Composable
-fun TimeWindowsDialog(
-    title: String,
-    initialWindows: List<TimeWindow>,
-    onDismiss: () -> Unit,
-    lockedWindows: Set<TimeWindow> = emptySet(),
-    emptyMessage: String = stringResource(R.string.no_time_windows),
-    onConfirm: (List<TimeWindow>) -> Unit
-) {
-    val windows = remember { mutableStateListOf(*initialWindows.toTypedArray()) }
-    var showAddForm by remember { mutableStateOf(false) }
-    var showError by remember { mutableStateOf(false) }
-    // Bumped whenever the form restarts so its wheels scroll back to the defaults.
-    var formKey by remember { mutableIntStateOf(0) }
-    var startHour by remember { mutableIntStateOf(18) }
-    var startMinute by remember { mutableIntStateOf(0) }
-    var endHour by remember { mutableIntStateOf(22) }
-    var endMinute by remember { mutableIntStateOf(0) }
-
-    fun resetForm() {
-        startHour = 18; startMinute = 0; endHour = 22; endMinute = 0
-        showError = false
-        formKey++
-    }
-
-    /**
-     * The window being edited is part of the list the dialog saves — there's no separate
-     * confirmation for it. Returns false (and flags the error) when it can't be added.
-     */
-    fun commitPendingWindow(): Boolean {
-        if (!showAddForm) return true
-        val start = startHour * 60 + startMinute
-        val end = endHour * 60 + endMinute
-        if (start == end) {
-            showError = true
-            return false
-        }
-        val window = TimeWindow(start, end)
-        if (window !in windows) windows.add(window)
-        showAddForm = false
-        resetForm()
-        return true
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                if (windows.isEmpty() && !showAddForm) {
-                    Text(emptyMessage, style = MaterialTheme.typography.bodySmall)
-                }
-                windows.forEachIndexed { index, window ->
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(window.formatted(), modifier = Modifier.weight(1f))
-                        IconButton(onClick = { windows.removeAt(index) }, enabled = window !in lockedWindows) {
-                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.remove))
-                        }
-                    }
-                }
-                Spacer(Modifier.height(8.dp))
-                if (showAddForm) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                        shape = MaterialTheme.shapes.medium,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    stringResource(
-                                        R.string.new_time_window,
-                                        TimeWindow(startHour * 60 + startMinute, endHour * 60 + endMinute).formatted()
-                                    ),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                IconButton(onClick = { showAddForm = false; resetForm() }) {
-                                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.cancel))
-                                }
-                            }
-                            key(formKey) {
-                                TimeOfDayWheels(
-                                    label = stringResource(R.string.start_time),
-                                    hour = startHour,
-                                    minute = startMinute,
-                                    onHourChange = { startHour = it; showError = false },
-                                    onMinuteChange = { startMinute = it; showError = false }
-                                )
-                                Spacer(Modifier.height(12.dp))
-                                TimeOfDayWheels(
-                                    label = stringResource(R.string.end_time),
-                                    hour = endHour,
-                                    minute = endMinute,
-                                    onHourChange = { endHour = it; showError = false },
-                                    onMinuteChange = { endMinute = it; showError = false }
-                                )
-                            }
-                            if (showError) {
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    stringResource(R.string.invalid_time_window),
-                                    color = MaterialTheme.colorScheme.error,
-                                    style = MaterialTheme.typography.labelSmall
-                                )
-                            }
-                        }
-                    }
-                    Spacer(Modifier.height(8.dp))
-                }
-                TextButton(onClick = { if (commitPendingWindow()) showAddForm = true }) {
-                    Icon(Icons.Default.Add, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(if (showAddForm) R.string.add_another_time_window else R.string.add_time_window))
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = { if (commitPendingWindow()) onConfirm(windows.toList()) }) {
                 Text(stringResource(R.string.confirm))
             }
         },

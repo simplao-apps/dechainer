@@ -12,7 +12,7 @@ import io.github.warleysr.dechainer.DechainerApplication
 import io.github.warleysr.dechainer.models.AppItem
 import io.github.warleysr.dechainer.models.SuspensionReason
 import io.github.warleysr.dechainer.models.TimeLimit
-import io.github.warleysr.dechainer.models.TimeWindow
+import io.github.warleysr.dechainer.models.TimeWindows
 import java.util.concurrent.TimeUnit
 
 object AppRepository {
@@ -32,6 +32,12 @@ object AppRepository {
 
     private val weeklyLimitsPrefs
         get() = context.getSharedPreferences(AppTimeLimits.WEEKLY_PREFS_NAME, Context.MODE_PRIVATE)
+
+    private val dailyTimeWindowsPrefs
+        get() = context.getSharedPreferences(AppTimeWindows.PREFS_NAME, Context.MODE_PRIVATE)
+
+    private val weeklyTimeWindowsPrefs
+        get() = context.getSharedPreferences(AppTimeWindows.WEEKLY_PREFS_NAME, Context.MODE_PRIVATE)
 
     @Volatile
     private var cachedApps: List<AppItem>? = null
@@ -56,7 +62,8 @@ object AppRepository {
         val weeklyPrefs = weeklyLimitsPrefs
         val reopenPrefs = context.getSharedPreferences("reopen_times", Context.MODE_PRIVATE)
         val ratingsPrefs = context.getSharedPreferences("app_ratings", Context.MODE_PRIVATE)
-        val timeWindowsPrefs = context.getSharedPreferences(AppTimeWindows.PREFS_NAME, Context.MODE_PRIVATE)
+        val dailyWindowsPrefs = dailyTimeWindowsPrefs
+        val weeklyWindowsPrefs = weeklyTimeWindowsPrefs
 
         val installedApps = packageManager.getInstalledApplications(PackageManager.MATCH_UNINSTALLED_PACKAGES)
 
@@ -79,7 +86,7 @@ object AppRepository {
                     isUninstallBlocked = isUninstallBlocked,
                     timeLimit = AppTimeLimits.read(limitsPrefs, weeklyPrefs, packageName),
                     reopeningSeconds = reopenPrefs.getInt(packageName, 0),
-                    timeWindows = AppTimeWindows.decode(timeWindowsPrefs.getString(packageName, null)),
+                    timeWindows = AppTimeWindows.read(dailyWindowsPrefs, weeklyWindowsPrefs, packageName),
                     isSuspended = isSuspended,
                     hasExplicitContent = ratingsPrefs.getBoolean(packageName, false)
                 )
@@ -198,10 +205,8 @@ object AppRepository {
         return context.getSharedPreferences("reopen_times", Context.MODE_PRIVATE).getInt(packageName, 0)
     }
 
-    fun setAppTimeWindows(packageName: String, windows: List<TimeWindow>) {
-        context.getSharedPreferences(AppTimeWindows.PREFS_NAME, Context.MODE_PRIVATE).edit {
-            if (windows.isEmpty()) remove(packageName) else putString(packageName, AppTimeWindows.encode(windows))
-        }
+    fun setAppTimeWindows(packageName: String, windows: TimeWindows) {
+        AppTimeWindows.write(dailyTimeWindowsPrefs, weeklyTimeWindowsPrefs, packageName, windows)
         updateCachedApp(packageName) { it.copy(timeWindows = windows) }
     }
 

@@ -125,7 +125,7 @@ fun TimeLimitEditor(state: TimeLimitEditorState) {
                 orderedDays.forEach { day ->
                     DayChip(
                         label = day.getDisplayName(TextStyle.SHORT, locale).trimEnd('.'),
-                        minutes = state.weeklyMinutes[day.ordinal],
+                        subtext = if (state.weeklyMinutes[day.ordinal] > 0) shortDuration(state.weeklyMinutes[day.ordinal]) else "—",
                         selected = day == state.selectedDay,
                         onClick = { state.selectedDay = day },
                         modifier = Modifier.weight(1f)
@@ -158,7 +158,13 @@ fun TimeLimitEditor(state: TimeLimitEditorState) {
 }
 
 @Composable
-private fun DayChip(label: String, minutes: Int, selected: Boolean, onClick: () -> Unit, modifier: Modifier) {
+fun DayChip(
+    label: String,
+    subtext: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     val container = if (selected) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
     val content = if (selected) MaterialTheme.colorScheme.onPrimaryContainer
@@ -179,13 +185,30 @@ private fun DayChip(label: String, minutes: Int, selected: Boolean, onClick: () 
             maxLines = 1
         )
         Text(
-            if (minutes > 0) shortDuration(minutes) else "—",
+            subtext,
             fontSize = 10.sp,
             color = content,
             textAlign = TextAlign.Center,
             maxLines = 1
         )
     }
+}
+
+@Composable
+fun DayChip(
+    label: String,
+    minutes: Int,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    DayChip(
+        label = label,
+        subtext = if (minutes > 0) shortDuration(minutes) else "—",
+        selected = selected,
+        onClick = onClick,
+        modifier = modifier
+    )
 }
 
 /** Compact form for the day chips: "1h30", "2h", "45m". */

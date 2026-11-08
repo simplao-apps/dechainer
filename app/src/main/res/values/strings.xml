@@ -228,6 +228,11 @@
     <string name="time_limit_none_today">none today (varies by day)</string>
     <string name="time_limit_today">%1$s today</string>
     <string name="time_limit_none_today_short">none today</string>
+    <string name="time_windows_per_day">Different windows for each day of the week</string>
+    <string name="time_windows_varies_today">%1$s today (varies by day)</string>
+    <string name="time_windows_none_today">anytime today (varies by day)</string>
+    <string name="time_windows_today">%1$s today</string>
+    <string name="time_windows_none_today_short">anytime today</string>
     <string name="renew_session">Renew session</string>
     <string name="outside_time_window_title">Outside allowed time</string>
     <string name="outside_time_window_description">%1$s can only be used during its allowed time windows:</string>
@@ -269,6 +274,20 @@
     <string name="manage_app_restrictions">App restrictions</string>
     <string name="no_restrictions_available">No restrictions available for %1$s.</string>
     <string name="show_system_apps">Show system apps</string>
+    <string name="active_restrictions_count">%1$d active of %2$d</string>
+    <string name="filter_all">All</string>
+    <string name="filter_active">Active</string>
+    <string name="filter_default">Default</string>
+    <string name="manage_restriction_switch">Manage this setting</string>
+    <string name="clear_all_restrictions">Reset all to default</string>
+    <string name="clear_all_restrictions_confirm">Reset all managed configurations for %1$s to default? The application will return to its unmanaged behavior.</string>
+    <string name="save_restrictions">Save restrictions</string>
+    <string name="restrictions_saved">Restrictions saved</string>
+    <string name="status_enabled">Enabled</string>
+    <string name="status_disabled">Disabled</string>
+    <string name="no_matching_restrictions">No restrictions matching \"%1$s\"</string>
+    <string name="see_more">See more</string>
+    <string name="see_less">See less</string>
 
     <string name="keyboard_type">Keyboard type</string>
     <string name="keyboard_normal">Normal Keyboard</string>

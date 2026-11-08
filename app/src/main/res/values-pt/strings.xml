@@ -228,6 +228,11 @@
     <string name="time_limit_none_today">nenhum hoje (varia por dia)</string>
     <string name="time_limit_today">%1$s hoje</string>
     <string name="time_limit_none_today_short">nenhum hoje</string>
+    <string name="time_windows_per_day">Janelas diferentes para cada dia da semana</string>
+    <string name="time_windows_varies_today">%1$s hoje (varia por dia)</string>
+    <string name="time_windows_none_today">livre hoje (varia por dia)</string>
+    <string name="time_windows_today">%1$s hoje</string>
+    <string name="time_windows_none_today_short">livre hoje</string>
     <string name="renew_session">Renovar sessão</string>
     <string name="outside_time_window_title">Fora do horário permitido</string>
     <string name="outside_time_window_description">%1$s só pode ser usado dentro das suas janelas de horário permitidas:</string>
@@ -269,6 +274,20 @@
     <string name="manage_app_restrictions">Configurações gerenciadas</string>
     <string name="no_restrictions_available">Nenhuma configuração gerenciada disponível para %1$s.</string>
     <string name="show_system_apps">Mostrar apps do sistema</string>
+    <string name="active_restrictions_count">%1$d ativas de %2$d</string>
+    <string name="filter_all">Todas</string>
+    <string name="filter_active">Ativas</string>
+    <string name="filter_default">Padrão</string>
+    <string name="manage_restriction_switch">Gerenciar esta configuração</string>
+    <string name="clear_all_restrictions">Redefinir tudo para o padrão</string>
+    <string name="clear_all_restrictions_confirm">Redefinir todas as configurações gerenciadas de %1$s para o padrão? O aplicativo voltará ao comportamento não gerenciado.</string>
+    <string name="save_restrictions">Salvar restrições</string>
+    <string name="restrictions_saved">Restrições salvas</string>
+    <string name="status_enabled">Ativado</string>
+    <string name="status_disabled">Desativado</string>
+    <string name="no_matching_restrictions">Nenhuma configuração correspondente a \"%1$s\"</string>
+    <string name="see_more">Ver mais</string>
+    <string name="see_less">Ver menos</string>
 
     <string name="keyboard_type">Tipo de teclado</string>
     <string name="keyboard_normal">Teclado Normal</string>

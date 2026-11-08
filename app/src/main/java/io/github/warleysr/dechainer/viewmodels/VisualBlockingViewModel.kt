@@ -85,6 +85,11 @@ class VisualBlockingViewModel : ViewModel() {
         prefs.edit { putBoolean(VisualBlockingSettings.KEY_ENABLED, value) }
     }
 
+    fun updateTargetPackages(packages: Set<String>) {
+        targetPackages = packages
+        prefs.edit { putStringSet(VisualBlockingSettings.KEY_TARGET_PACKAGES, packages) }
+    }
+
     fun toggleAppSelection(packageName: String) {
         val newSet = targetPackages.toMutableSet()
         if (!newSet.remove(packageName)) newSet.add(packageName)

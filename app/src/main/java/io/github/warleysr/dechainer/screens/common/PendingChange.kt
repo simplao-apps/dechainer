@@ -5,6 +5,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
+import io.github.warleysr.dechainer.models.TimeWindows
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -45,6 +46,11 @@ fun isLooserWindows(old: List<TimeWindow>, new: List<TimeWindow>): Boolean {
     fun allowed(windows: List<TimeWindow>, minute: Int) = windows.isEmpty() || windows.any { it.contains(minute) }
     return (0 until 1440).any { allowed(new, it) && !allowed(old, it) }
 }
+
+fun isLooserWindows(old: TimeWindows, new: TimeWindows): Boolean =
+    DayOfWeek.entries.any { day ->
+        isLooserWindows(old.windowsFor(day), new.windowsFor(day))
+    }
 
 fun isLooserRestrictions(current: android.os.Bundle, new: android.os.Bundle): Boolean {
     for (key in current.keySet()) {

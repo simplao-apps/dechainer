@@ -90,6 +90,7 @@ class DechainerAccessibilityService : AccessibilityService() {
     private lateinit var usagePrefs: SharedPreferences
     private lateinit var reopenPrefs: SharedPreferences
     private lateinit var timeWindowPrefs: SharedPreferences
+    private lateinit var weeklyTimeWindowPrefs: SharedPreferences
     private lateinit var groupsPrefs: SharedPreferences
     private lateinit var groupUsagePrefs: SharedPreferences
     private lateinit var blockedWordsPrefs: SharedPreferences
@@ -262,7 +263,7 @@ class DechainerAccessibilityService : AccessibilityService() {
                 }
             }
 
-            timeWindowPrefs -> {
+            timeWindowPrefs, weeklyTimeWindowPrefs -> {
                 if (key == currentPackage) {
                     handler.removeCallbacks(blockRunnable)
                     handler.removeCallbacks(windowEndRunnable)
@@ -485,6 +486,7 @@ class DechainerAccessibilityService : AccessibilityService() {
         usagePrefs = getSharedPreferences("internal_usage_stats", MODE_PRIVATE)
         reopenPrefs = getSharedPreferences("reopen_times", MODE_PRIVATE)
         timeWindowPrefs = getSharedPreferences(AppTimeWindows.PREFS_NAME, MODE_PRIVATE)
+        weeklyTimeWindowPrefs = getSharedPreferences(AppTimeWindows.WEEKLY_PREFS_NAME, MODE_PRIVATE)
         groupsPrefs = getSharedPreferences(AppGroupRepository.PREFS_NAME, MODE_PRIVATE)
         groupUsagePrefs = getSharedPreferences("group_usage_stats", MODE_PRIVATE)
         blockedWordsPrefs = getSharedPreferences("blocked_words_prefs", MODE_PRIVATE)
@@ -499,6 +501,7 @@ class DechainerAccessibilityService : AccessibilityService() {
         limitPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         weeklyLimitPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         timeWindowPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
+        weeklyTimeWindowPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         groupsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         blockedWordsPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
         visualBlockingPrefs.registerOnSharedPreferenceChangeListener(prefsListener)
@@ -574,6 +577,7 @@ class DechainerAccessibilityService : AccessibilityService() {
         limitPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         weeklyLimitPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         timeWindowPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
+        weeklyTimeWindowPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         groupsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         blockedWordsPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
         visualBlockingPrefs.unregisterOnSharedPreferenceChangeListener(prefsListener)
@@ -1215,6 +1219,7 @@ class DechainerAccessibilityService : AccessibilityService() {
             .union(weeklyLimitPrefs.all.keys)
             .union(reopenPrefs.all.keys)
             .union(timeWindowPrefs.all.keys)
+            .union(weeklyTimeWindowPrefs.all.keys)
             .union(restrictedGroupPackages)
             .toTypedArray()
     }
@@ -1277,14 +1282,14 @@ class DechainerAccessibilityService : AccessibilityService() {
 
     private fun trackingConfigFor(pkg: String): TrackingConfig {
         val group = AppGroupRepository.getGroupForPackage(pkg)
-        val appWindows = AppTimeWindows.decode(timeWindowPrefs.getString(pkg, null))
+        val appWindows = AppTimeWindows.read(timeWindowPrefs, weeklyTimeWindowPrefs, pkg).todayWindows()
         val appLimitMinutes = AppTimeLimits.read(limitPrefs, weeklyLimitPrefs, pkg).todayMinutes()
         return if (group != null) {
             TrackingConfig(
                 group = group,
                 appLimitMinutes = appLimitMinutes,
                 groupLimitMinutes = group.timeLimit.todayMinutes(),
-                windows = TimeWindow.intersect(group.timeWindows, appWindows)
+                windows = TimeWindow.intersect(group.timeWindows.todayWindows(), appWindows)
             )
         } else {
             TrackingConfig(null, appLimitMinutes, 0, appWindows)

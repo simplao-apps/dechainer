@@ -6,6 +6,7 @@ import io.github.warleysr.dechainer.DechainerApplication
 import io.github.warleysr.dechainer.models.AppGroup
 import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
+import io.github.warleysr.dechainer.models.TimeWindows
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.DayOfWeek
@@ -54,7 +55,7 @@ object AppGroupRepository {
     fun setGroupTimeLimit(groupId: String, limit: TimeLimit) =
         updateGroup(groupId) { it.copy(timeLimit = limit) }
 
-    fun setGroupTimeWindows(groupId: String, windows: List<TimeWindow>) =
+    fun setGroupTimeWindows(groupId: String, windows: TimeWindows) =
         updateGroup(groupId) { it.copy(timeWindows = windows) }
 
     /** Replaces the group's members. Any package added here is removed from whichever other group held it, keeping each app in at most one group. */
@@ -107,9 +108,8 @@ object AppGroupRepository {
                 put("packages", JSONArray(group.packageNames.toList()))
                 put("limit", group.timeLimit.dailyMinutes)
                 group.timeLimit.weeklyMinutes?.let { put("weeklyLimit", JSONArray(it)) }
-                put("windows", JSONArray(group.timeWindows.map { w ->
-                    JSONObject().apply { put("s", w.startMinute); put("e", w.endMinute) }
-                }))
+                put("windows", AppTimeWindows.encodeList(group.timeWindows.dailyWindows))
+                group.timeWindows.weeklyWindows?.let { put("weeklyWindows", AppTimeWindows.encodeWeekly(it)) }
             })
         }
         return array.toString()
@@ -123,11 +123,15 @@ object AppGroupRepository {
                 val obj = array.getJSONObject(i)
                 val packagesArray = obj.getJSONArray("packages")
                 val packages = (0 until packagesArray.length()).map { packagesArray.getString(it) }.toSet()
-                val windowsArray = obj.getJSONArray("windows")
-                val windows = (0 until windowsArray.length()).map { j ->
-                    val w = windowsArray.getJSONObject(j)
-                    TimeWindow(w.getInt("s"), w.getInt("e"))
-                }
+                val windowsArray = obj.optJSONArray("windows")
+                val windows = if (windowsArray != null) {
+                    (0 until windowsArray.length()).map { j ->
+                        val w = windowsArray.getJSONObject(j)
+                        TimeWindow(w.getInt("s"), w.getInt("e"))
+                    }
+                } else emptyList()
+                val weeklyWindows = obj.optJSONArray("weeklyWindows")
+                    ?.let { arr -> AppTimeWindows.decodeWeekly(arr) }
                 // Groups saved before per-weekday limits existed only have the daily "limit".
                 val weekly = obj.optJSONArray("weeklyLimit")
                     ?.let { arr -> (0 until arr.length()).map { arr.getInt(it) } }
@@ -137,7 +141,7 @@ object AppGroupRepository {
                     name = obj.getString("name"),
                     packageNames = packages,
                     timeLimit = weekly?.let { TimeLimit.perDay(it) } ?: TimeLimit.daily(obj.getInt("limit")),
-                    timeWindows = windows
+                    timeWindows = weeklyWindows?.let { TimeWindows.perDay(it) } ?: TimeWindows.daily(windows)
                 )
             }
         } catch (_: Exception) {

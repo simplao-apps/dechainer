@@ -5,5 +5,5 @@ data class AppGroup(
     val name: String,
     val packageNames: Set<String> = emptySet(),
     val timeLimit: TimeLimit = TimeLimit.NONE,
-    val timeWindows: List<TimeWindow> = emptyList()
+    val timeWindows: TimeWindows = TimeWindows.NONE
 )

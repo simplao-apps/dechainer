@@ -11,6 +11,7 @@ import io.github.warleysr.dechainer.models.AppGroup
 import io.github.warleysr.dechainer.models.AppItem
 import io.github.warleysr.dechainer.models.TimeLimit
 import io.github.warleysr.dechainer.models.TimeWindow
+import io.github.warleysr.dechainer.models.TimeWindows
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -94,9 +95,13 @@ class AppsViewModel : ViewModel() {
         return AppRepository.getAppReopenTime(packageName)
     }
 
-    fun setAppTimeWindows(packageName: String, windows: List<TimeWindow>) {
+    fun setAppTimeWindows(packageName: String, windows: TimeWindows) {
         AppRepository.setAppTimeWindows(packageName, windows)
         loadApps()
+    }
+
+    fun setAppTimeWindows(packageName: String, windows: List<TimeWindow>) {
+        setAppTimeWindows(packageName, TimeWindows.daily(windows))
     }
 
     fun loadGroups() {
@@ -126,9 +131,13 @@ class AppsViewModel : ViewModel() {
         loadGroups()
     }
 
-    fun setGroupTimeWindows(groupId: String, windows: List<TimeWindow>) {
+    fun setGroupTimeWindows(groupId: String, windows: TimeWindows) {
         AppGroupRepository.setGroupTimeWindows(groupId, windows)
         loadGroups()
+    }
+
+    fun setGroupTimeWindows(groupId: String, windows: List<TimeWindow>) {
+        setGroupTimeWindows(groupId, TimeWindows.daily(windows))
     }
 
     fun setGroupPackages(groupId: String, packageNames: Set<String>) {
