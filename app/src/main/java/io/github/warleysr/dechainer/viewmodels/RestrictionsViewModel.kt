@@ -16,6 +16,7 @@ class RestrictionsViewModel : ViewModel() {
     val appliedRestrictions = mutableStateMapOf<String, Boolean>()
 
     val recommendedKeys get() = SystemRestrictions.recommendedKeys
+    val maximumKeys get() = SystemRestrictions.maximumKeys
     val otherKeys get() = SystemRestrictions.otherKeys
     private val allKeys get() = SystemRestrictions.allKeys
 

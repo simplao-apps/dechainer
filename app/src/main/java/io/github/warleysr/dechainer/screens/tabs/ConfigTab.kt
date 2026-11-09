@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.warleysr.dechainer.DechainerAccessibilityService
 import io.github.warleysr.dechainer.R
+import io.github.warleysr.dechainer.data.ColorFilterController
 import io.github.warleysr.dechainer.screens.common.RecoveryGateDialog
 import io.github.warleysr.dechainer.screens.common.RecoveryGenerateDialog
 import io.github.warleysr.dechainer.screens.common.rememberRecoveryGate
@@ -141,7 +142,9 @@ fun ConfigTab(
                     leadingContent = { Icon(Icons.Outlined.Accessibility, "") },
                     trailingContent = {
                         Switch(advancedBlocking, onCheckedChange = { checked ->
-                            if (!Shizuku.pingBinder()) {
+                            // With WRITE_SECURE_SETTINGS the toggle no longer needs Shizuku,
+                            // which maximum mode stops by locking debugging.
+                            if (!Shizuku.pingBinder() && !ColorFilterController.hasPermission(context)) {
                                 scope.launch {
                                     snackbarHostState.showSnackbar(shizukuNotRunningMsg)
                                 }

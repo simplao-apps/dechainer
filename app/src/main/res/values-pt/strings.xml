@@ -73,6 +73,9 @@
     <string name="allow_uninstall">Permitir Desinstalar</string>
     <string name="apply_restrictions">Aplicar restrições</string>
     <string name="recommended_configs">Restrições recomendadas</string>
+    <string name="maximum_mode_title">Modo máximo (anti-fuga)</string>
+    <string name="maximum_mode_desc">Fecha as rotas de fuga que as recomendadas deixam abertas: ADB/Shizuku (que desligam o serviço de acessibilidade com um único comando), modo de segurança, usuários e perfis extras, relógio e controle de apps nas Configurações. Aplique só depois do setup completo: bloquear a depuração também para o Shizuku. Desligar qualquer uma delas exige o código de recuperação.</string>
+    <string name="maximum_mode_no_secure_settings">O Déchaîner não recebeu a permissão WRITE_SECURE_SETTINGS. Sem ela, depois que a depuração for bloqueada o interruptor de bloqueio avançado não poderá mais ser alterado. Ligue os modos de cor uma vez com o Shizuku ativo para concedê-la antes.</string>
     <string name="other_restrictions">Outras restrições</string>
     <string name="disallow_config_vpn">Proibir VPN</string>
     <string name="disallow_config_private_dns">Proibir alterar DNS privado</string>

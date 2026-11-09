@@ -74,6 +74,28 @@ class SystemRestrictionsTest {
     }
 
     @Test
+    fun `maximumKeys are tracked, not duplicated in other restrictions and all have a label`() {
+        val maximum = SystemRestrictions.maximumKeys
+        assertTrue(SystemRestrictions.allKeys.containsAll(maximum))
+        assertTrue(maximum.none { it in SystemRestrictions.otherKeys })
+        assertTrue(maximum.none { it in SystemRestrictions.recommendedKeys })
+        assertEquals(maximum.size, maximum.distinct().size)
+        for (key in maximum) {
+            assertNotNull("Failed to resolve string resource for $key", SystemRestrictions.resolveStringRes(context, key))
+        }
+    }
+
+    @Test
+    fun `maximumKeys close the adb, safe mode, extra user and clock escape routes`() {
+        val maximum = SystemRestrictions.maximumKeys
+        assertTrue(maximum.contains(UserManager.DISALLOW_DEBUGGING_FEATURES))
+        assertTrue(maximum.contains(UserManager.DISALLOW_SAFE_BOOT))
+        assertTrue(maximum.contains(UserManager.DISALLOW_ADD_USER))
+        assertTrue(maximum.contains(UserManager.DISALLOW_USER_SWITCH))
+        assertTrue(maximum.contains(UserManager.DISALLOW_CONFIG_DATE_TIME))
+    }
+
+    @Test
     fun `normalizeForSearch removes diacritics and matches unaccented queries`() {
         assertEquals("desativar camera", SystemRestrictions.normalizeForSearch("Desativar câmera"))
         assertEquals("camera", SystemRestrictions.normalizeForSearch("Câmera"))

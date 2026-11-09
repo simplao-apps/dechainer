@@ -73,6 +73,9 @@
     <string name="allow_uninstall">Allow Uninstall</string>
     <string name="apply_restrictions">Apply restrictions</string>
     <string name="recommended_configs">Recommended restrictions</string>
+    <string name="maximum_mode_title">Maximum mode (anti-escape)</string>
+    <string name="maximum_mode_desc">Closes the escape routes left open by the recommended set: ADB/Shizuku (which can turn the accessibility service off with a single command), safe mode, extra users and profiles, the clock and app control in Settings. Apply only after setup is complete: locking debugging also stops Shizuku. Turning any of these off requires the recovery code.</string>
+    <string name="maximum_mode_no_secure_settings">Déchaîner was not granted WRITE_SECURE_SETTINGS. Without it, once debugging is locked the advanced blocking switch can no longer be changed. Turn on color modes once with Shizuku running to grant it first.</string>
     <string name="other_restrictions">Other restrictions</string>
     <string name="disallow_config_vpn">Prohibit VPN</string>
     <string name="disallow_config_private_dns">Prohibit changing private DNS</string>

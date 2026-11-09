@@ -11,8 +11,10 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import android.os.IInterface
 import android.os.Process
+import android.provider.Settings
 import android.util.Log
 import androidx.core.net.toUri
+import io.github.warleysr.dechainer.DechainerAccessibilityService
 import io.github.warleysr.dechainer.DechainerApplication
 import io.github.warleysr.dechainer.utils.ShizukuRunner
 import rikka.shizuku.Shizuku
@@ -403,42 +405,42 @@ object DeviceOwnerRepository {
         return users
     }
 
+    /** Read straight from Settings.Secure — any app may read it, so Shizuku isn't needed. */
     fun getAccessibilityServices(): String {
-        var services = ""
-        ShizukuRunner.command(
-            "settings get secure enabled_accessibility_services",
-            listener = object : ShizukuRunner.CommandResultListener {
-                override fun onCommandResult(output: String, done: Boolean) {
-                    println("Output: $output Done: $done")
-                    services = output
-                }
-
-                override fun onCommandError(error: String) {
-                    Log.e("Shizuku", error)
-                }
-            })
-        return services.replace("\n", "")
+        val raw = Settings.Secure.getString(
+            context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        )
+        return raw?.trim()?.takeUnless { it == "null" }.orEmpty()
     }
 
-    fun isAccessibilityGranted(): Boolean {
-        return getAccessibilityServices().contains(".DechainerAccessibilityService")
-    }
+    private fun isOwnService(entry: String): Boolean =
+        ComponentName.unflattenFromString(entry.trim()) ==
+            ComponentName(context, DechainerAccessibilityService::class.java)
 
+    fun isAccessibilityGranted(): Boolean =
+        getAccessibilityServices().split(':').any { isOwnService(it) }
+
+    /**
+     * Adds or removes only this app's entry, keeping every other enabled accessibility service
+     * (it used to wipe them all when revoking). Writes the setting directly when
+     * WRITE_SECURE_SETTINGS has been granted, so it keeps working after maximum mode locks
+     * debugging — and with it Shizuku; falls back to Shizuku otherwise.
+     */
     fun changeAccessibilityPermission(grant: Boolean) {
-        var services = getAccessibilityServices()
-        val isGranted = isAccessibilityGranted()
+        val others = getAccessibilityServices().split(':')
+            .filter { it.isNotBlank() && !isOwnService(it) }
+        val services = (if (grant) others + serviceComponent else others).joinToString(":")
 
-        if (grant && !isGranted) {
-            if (services.isNotEmpty())
-                services += ":"
-            services += serviceComponent
-        }
-        else if (!grant && isGranted) {
-            services = "'null'"
+        if (ColorFilterController.hasPermission(context)) {
+            val resolver = context.contentResolver
+            Settings.Secure.putString(resolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, services)
+            Settings.Secure.putInt(resolver, Settings.Secure.ACCESSIBILITY_ENABLED, 1)
+            return
         }
 
+        val shellValue = services.ifEmpty { "null" }
         ShizukuRunner.command(
-            "settings put secure enabled_accessibility_services $services",
+            "settings put secure enabled_accessibility_services '$shellValue'",
             listener = object : ShizukuRunner.CommandResultListener {
                 override fun onCommandResult(output: String, done: Boolean) {
                     println("Output: $output Done: $done")

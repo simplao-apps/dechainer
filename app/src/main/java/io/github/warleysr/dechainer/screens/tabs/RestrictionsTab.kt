@@ -21,6 +21,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.warleysr.dechainer.R
+import io.github.warleysr.dechainer.data.ColorFilterController
 import io.github.warleysr.dechainer.data.SystemRestrictions
 import io.github.warleysr.dechainer.screens.common.NoDeviceOwnerPrivileges
 import io.github.warleysr.dechainer.screens.common.RecoveryGateDialog
@@ -50,6 +51,21 @@ fun RestrictionsTab(
                     .weight(1f)
                     .verticalScroll(rememberScrollState())
             ) {
+                val context = LocalContext.current
+                val canWriteSecureSettings = remember { ColorFilterController.hasPermission(context) }
+
+                RestrictionAccordion(
+                    title = stringResource(R.string.maximum_mode_title),
+                    keys = restrictionsViewModel.maximumKeys,
+                    viewModel = restrictionsViewModel,
+                    defaultExpanded = false,
+                    description = stringResource(R.string.maximum_mode_desc),
+                    warning = if (canWriteSecureSettings) null
+                        else stringResource(R.string.maximum_mode_no_secure_settings)
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 RestrictionAccordion(
                     title = stringResource(R.string.recommended_configs),
                     keys = restrictionsViewModel.recommendedKeys,
@@ -106,7 +122,9 @@ private fun RestrictionAccordion(
     keys: List<String>,
     viewModel: RestrictionsViewModel,
     defaultExpanded: Boolean,
-    showSearch: Boolean = false
+    showSearch: Boolean = false,
+    description: String? = null,
+    warning: String? = null
 ) {
     var expanded by remember { mutableStateOf(defaultExpanded) }
     var searchQuery by remember { mutableStateOf("") }
@@ -167,7 +185,33 @@ private fun RestrictionAccordion(
                         .padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
                 ) {
                     HorizontalDivider(modifier = Modifier.padding(bottom = 8.dp))
-                    
+
+                    if (description != null) {
+                        Text(
+                            text = description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                    }
+
+                    if (warning != null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer,
+                            shape = MaterialTheme.shapes.small,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp)
+                        ) {
+                            Text(
+                                text = warning,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+
                     if (showSearch) {
                         OutlinedTextField(
                             value = searchQuery,

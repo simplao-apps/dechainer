@@ -11,6 +11,25 @@ object SystemRestrictions {
         UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES_GLOBALLY
     )
 
+    /**
+     * "Maximum mode": closes the escape routes that survive the recommended set — ADB/Shizuku
+     * (which can switch the accessibility service off with one command), safe mode (third-party
+     * apps, this one included, don't run there), extra users/profiles (the filter doesn't follow
+     * into them) and the clock (moving it skips time windows and limits).
+     * Locking debugging also stops Shizuku, so it should only be applied once setup is done.
+     */
+    val maximumKeys = listOf(
+        UserManager.DISALLOW_DEBUGGING_FEATURES,
+        UserManager.DISALLOW_SAFE_BOOT,
+        UserManager.DISALLOW_ADD_USER,
+        UserManager.DISALLOW_USER_SWITCH,
+        UserManager.DISALLOW_ADD_MANAGED_PROFILE,
+        "no_add_clone_profile",
+        "no_add_private_profile",
+        UserManager.DISALLOW_CONFIG_DATE_TIME,
+        UserManager.DISALLOW_APPS_CONTROL
+    )
+
     // Additional known vendor / Knox / OEM restrictions
     val additionalKeys = listOf(
         "disallow_biometric",
@@ -48,11 +67,11 @@ object SystemRestrictions {
 
     val otherKeys: List<String> by lazy {
         val keys = (restrictionFieldNames.keys + additionalKeys).distinct()
-        keys.filter { it !in recommendedKeys }.sorted()
+        keys.filter { it !in recommendedKeys && it !in maximumKeys }.sorted()
     }
 
     val allKeys: List<String> by lazy {
-        (recommendedKeys + otherKeys).distinct()
+        (recommendedKeys + maximumKeys + otherKeys).distinct()
     }
 
     fun resourceNamesFor(key: String): List<String> {
